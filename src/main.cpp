@@ -1,5 +1,5 @@
 /*
-  AT28C256 Programmer for MEGA 2560
+  AT28C256 Programmer for Arduino MEGA 2560
 
   PORT MAPPING
   +---------+----------+
@@ -93,7 +93,7 @@ byte readByte(uint16_t address) {
     return data;
 }
 
-void writeByte(uint16_t address, byte data) {
+bool writeByte(uint16_t address, byte data) {
     setAddress(address);
     setDataBusMode(OUTPUT);
     setData(data);
@@ -102,7 +102,22 @@ void writeByte(uint16_t address, byte data) {
     delay(1);
     writeDisable();
     chipDisable();
-    delay(10);
+    // delay(10);
+    
+    // Read byte to confirm write
+    bool confirmed = false;
+    uint8_t count = 10;
+    setData(0);
+    setDataBusMode(INPUT);
+    chipEnable();
+    while (!confirmed && count > 0) {
+        outputEnable();
+        confirmed = data == readData();
+        count--;
+        outputDisable();
+        delay(1);
+    }
+    return confirmed;
 }
 
 void unlockChip() {
