@@ -1,6 +1,6 @@
 # 28c265-programmer
 
-Simple programmer for eprom 28c265 serias based on Arduino Mega 2560.
+Simple programmer for eprom 28c265 series based on Arduino Mega 2560.
 
 ## Port mapping
 

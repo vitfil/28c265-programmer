@@ -182,13 +182,20 @@ void lockChip() {
 }
 
 void clearChip() {
+    char buf[10];
     for (uint16_t address = 0x00; address <= MAX_ADDR; address++) {
-        writeByte(address, 0xff);
+        sprintf(buf, "<%04x:%02x=", address, 0xff);
+        Serial.println(buf);
+        if (!writeByte(address, 0xff)) {
+            Serial.println("<ERROR=");
+            return;
+        }
     }
+    Serial.println("<OK=");
 }
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     chipDisable();
     pinMode(PIN_CEN, OUTPUT);
     writeDisable();
@@ -204,21 +211,44 @@ void setup() {
     setAddress(0);
     setData(0);
 
-    delay(1);
-
-    // Test read
-    // byte data[16];
-    // char buf[80];
-    // Serial.println("");
-    // for (uint16_t address = 0; address < 16; address++) {
-    //     data[address] = readByte(address);
-    // }
-    // sprintf(buf, "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-    //         data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
-    //         data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-    // Serial.println(buf);
+    delay(100);
 }
+
+void OK() {
+    Serial.println("<OK=");
+}
+
+char cmd;
+uint16_t addres = 0;
+byte data = 0;
+uint8_t pos = -1;
+bool cmdReceived = false;
 
 void loop() {
-}
+    char c = Serial.read();
+    if (c != -1) {
+        // incoming byte
+        if (c == '=') {
+            cmdReceived = true;
+        } else if (c == '<') {
+            pos = 0;
+        } else if (pos == 0) {
+            cmd = c;
+            pos++;
+        }
+    }
 
+    if (cmdReceived) {
+        switch (cmd) {
+            case 'H':  // HELLO
+                Serial.println("<HELLO=");
+                break;
+
+            case 'C': // CLEAR chip
+                clearChip();
+                break;
+        }
+        cmdReceived = false;
+        pos = -1;
+    }
+}
