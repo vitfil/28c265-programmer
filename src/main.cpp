@@ -156,6 +156,7 @@ void unlockChip() {
 
     chipDisable();
     delay(10);
+    Serial.println("<OK=");
 }
 
 void lockChip() {
@@ -179,6 +180,7 @@ void lockChip() {
 
     chipDisable();
     delay(10);
+    Serial.println("<OK=");
 }
 
 void clearChip() {
@@ -190,6 +192,16 @@ void clearChip() {
             Serial.println("<ERROR=");
             return;
         }
+    }
+    Serial.println("<OK=");
+}
+
+void readChip() {
+    char buf[10];
+    for (uint16_t address = 0x00; address <= MAX_ADDR; address++) {
+        byte data = readByte(address);
+        sprintf(buf, "<%04x:%02x=", address, data);
+        Serial.println(buf);
     }
     Serial.println("<OK=");
 }
@@ -219,22 +231,46 @@ void OK() {
 }
 
 char cmd;
-uint16_t addres = 0;
+uint16_t address = 0;
 byte data = 0;
 uint8_t pos = -1;
 bool cmdReceived = false;
 
 void loop() {
-    char c = Serial.read();
+    int c = Serial.read();
     if (c != -1) {
         // incoming byte
-        if (c == '=') {
+        if ((char)c == '=') {
+            // commant received
             cmdReceived = true;
-        } else if (c == '<') {
+        } else if ((char)c == '<') {
+            // start command
             pos = 0;
-        } else if (pos == 0) {
-            cmd = c;
-            pos++;
+        } else {
+            switch (pos)
+            {
+            case 0:
+                cmd = (char)c;
+                pos++;
+                address = 0;
+                data = 0;
+                break;
+
+            case 1:
+                address = ((uint16_t)c << 8);
+                pos++;
+                break;
+
+            case 2:
+                address += (uint16_t)c;
+                pos++;
+                break;
+
+            case 3:
+                data += (uint16_t)c;
+                pos++;
+                break;
+            }
         }
     }
 
@@ -246,6 +282,27 @@ void loop() {
 
             case 'C': // CLEAR chip
                 clearChip();
+                break;
+
+            case 'L':  // LOCK chip
+                lockChip();
+                break;
+
+            case 'U':  // UNLOCK chip
+                unlockChip();
+                break;
+
+            case 'R':  // READ chip
+                readChip();
+                break;
+
+            case 'W':  // WRITE chip
+            {
+                if (writeByte(address, data))
+                    Serial.println("<OK=");
+                else
+                    Serial.println("<ERROR=");
+            }
                 break;
         }
         cmdReceived = false;
